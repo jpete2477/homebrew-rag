@@ -2,6 +2,10 @@
 .env
 *.pem
 
+# Client and engagement material — this repo is PUBLIC. Keep it local.
+todo/
+.claude/
+
 # Real corpora and evals — this repo is public; keep source documents local.
 documents/*
 !documents/sample/
