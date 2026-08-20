@@ -127,6 +127,15 @@ class ClaudeGenerator:
             raise GenerationError(f"Claude API returned {exc.status_code}.{hint}") from exc
         except anthropic.APIConnectionError as exc:
             raise GenerationError(f"Could not reach the Claude API: {exc}") from exc
+        except TypeError as exc:
+            # With no credentials anywhere, the SDK raises TypeError from header
+            # validation at request time rather than when the client is built.
+            if "authentication" not in str(exc).lower():
+                raise
+            raise GenerationError(
+                "No Anthropic credentials found. Set ANTHROPIC_API_KEY in .env "
+                "(the API container reads it via env_file)."
+            ) from exc
 
         if response.stop_reason == "refusal":
             details = getattr(response, "stop_details", None)

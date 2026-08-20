@@ -130,3 +130,27 @@ def test_api_status_errors_become_generation_errors(hits):
 
     with pytest.raises(GenerationError, match="401.*ANTHROPIC_API_KEY"):
         generator.generate("q", hits)
+
+
+def test_missing_credentials_become_generation_errors(hits):
+    class Unauthenticated:
+        def create(self, **kwargs):
+            raise TypeError("Could not resolve authentication method. Expected one of ...")
+
+    generator = ClaudeGenerator(model="claude-opus-5", max_tokens=100)
+    generator._client = SimpleNamespace(beta=SimpleNamespace(messages=Unauthenticated()))
+
+    with pytest.raises(GenerationError, match="No Anthropic credentials"):
+        generator.generate("q", hits)
+
+
+def test_unrelated_type_errors_still_propagate(hits):
+    class Broken:
+        def create(self, **kwargs):
+            raise TypeError("unexpected keyword argument 'nonsense'")
+
+    generator = ClaudeGenerator(model="claude-opus-5", max_tokens=100)
+    generator._client = SimpleNamespace(beta=SimpleNamespace(messages=Broken()))
+
+    with pytest.raises(TypeError, match="nonsense"):
+        generator.generate("q", hits)

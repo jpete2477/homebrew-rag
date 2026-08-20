@@ -24,7 +24,11 @@ services:
     depends_on:
       qdrant:
         condition: service_healthy
-    env_file: .env
+    env_file:
+      # Optional so `docker compose up` works on a fresh clone; without it you
+      # get retrieval but no generation (ANTHROPIC_API_KEY lives here).
+      - path: .env
+        required: false
     environment:
       QDRANT_URL: http://qdrant:6333
       HF_HOME: /models

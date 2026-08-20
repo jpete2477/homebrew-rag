@@ -201,6 +201,7 @@ def split_into_sections(text: str) -> list[tuple[str, str]]:
         sections.append((heading, body))
     return sections
 
+
 def chunk_text(text: str, source: str, chunk_size: int = 500, overlap: int = 75) -> list[Chunk]:
     chunks = []
     idx = 0
