@@ -7,7 +7,10 @@ plain Python, which is the point. You can read all of it.
 
 [![CI](https://github.com/jpete2477/homebrew-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/jpete2477/homebrew-rag/actions/workflows/ci.yml)
 
-The narrative walkthrough this repo grew out of lives in [docs/tutorial.md](docs/tutorial.md).
+**New here?** [docs/how-it-works.md](docs/how-it-works.md) explains what the system
+does when you ask it a question, which module owns which decision, and how to answer the
+hard questions about accuracy, cost and where the data goes. The narrative walkthrough the
+repo grew out of is [docs/tutorial.md](docs/tutorial.md).
 
 ---
 
@@ -259,6 +262,7 @@ The tutorial's flat scripts map onto modules like this:
 | `eval_retrieval.py` | [`evaluation.py`](src/homebrew_rag/evaluation.py) |
 | `test_pipeline.py` | [`tests/`](tests/) |
 | the `bash` blocks | [`Makefile`](Makefile) |
+| the prose explaining *why* | [`docs/how-it-works.md`](docs/how-it-works.md) |
 
 Splitting ingest into three modules isn't ceremony: `embeddings.py` is the seam where
 you'd swap the local model for an API-based one (Voyage, say) without touching
