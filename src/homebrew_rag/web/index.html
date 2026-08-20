@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Homebrew RAG</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #fbfbf9;
+    --panel: #ffffff;
+    --ink: #1d1d1b;
+    --muted: #6b6b66;
+    --line: #e3e3dd;
+    --accent: #b4520a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17171a;
+      --panel: #1f1f23;
+      --ink: #ececea;
+      --muted: #9a9a95;
+      --line: #33333a;
+      --accent: #e08a4b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, sans-serif;
+  }
+  main { max-width: 780px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+  h1 { font-size: 1.35rem; margin: 0 0 .25rem; letter-spacing: -0.01em; }
+  p.sub { color: var(--muted); margin: 0 0 1.75rem; font-size: .9rem; }
+  form { display: flex; flex-direction: column; gap: .75rem; }
+  .row { display: flex; gap: .75rem; flex-wrap: wrap; }
+  input, select, textarea, button {
+    font: inherit; color: inherit;
+    border: 1px solid var(--line); border-radius: 8px;
+    background: var(--panel); padding: .6rem .7rem;
+  }
+  textarea { width: 100%; min-height: 5.5rem; resize: vertical; }
+  .row > label { display: flex; align-items: center; gap: .4rem; font-size: .85rem; color: var(--muted); }
+  .row input { width: 5.5rem; }
+  .row input.wide { width: 11rem; }
+  button {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+    font-weight: 600; cursor: pointer; align-self: flex-start; padding: .6rem 1.2rem;
+  }
+  button[disabled] { opacity: .55; cursor: progress; }
+  #answer {
+    margin-top: 1.75rem; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 1.1rem 1.2rem; white-space: pre-wrap;
+  }
+  #answer:empty { display: none; }
+  .err { border-color: #c4442b; color: #c4442b; }
+  h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 2rem 0 .6rem; }
+  ol { margin: 0; padding-left: 1.25rem; }
+  li { margin-bottom: .8rem; }
+  .src { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; }
+  .score { color: var(--muted); }
+  .snippet { color: var(--muted); font-size: .85rem; margin-top: .2rem; }
+  footer { margin-top: 3rem; color: var(--muted); font-size: .8rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Homebrew RAG</h1>
+  <p class="sub">Ask a question against the indexed document collection. Answers are grounded in retrieved chunks only.</p>
+
+  <form id="ask">
+    <textarea id="question" placeholder="e.g. What is included in the AI Opportunity Audit deliverable?" required></textarea>
+    <div class="row">
+      <label>top&nbsp;k <input id="topk" type="number" min="1" max="50" value="5" /></label>
+      <label>source tag <input id="tag" class="wide" type="text" placeholder="(all)" /></label>
+      <label>API key <input id="apikey" class="wide" type="password" placeholder="(if required)" /></label>
+    </div>
+    <button type="submit" id="go">Ask</button>
+  </form>
+
+  <div id="answer"></div>
+  <div id="sources"></div>
+  <footer id="meta"></footer>
+</main>
+
+<script>
+  const form = document.getElementById("ask");
+  const answerEl = document.getElementById("answer");
+  const sourcesEl = document.getElementById("sources");
+  const metaEl = document.getElementById("meta");
+  const button = document.getElementById("go");
+  const keyInput = document.getElementById("apikey");
+
+  keyInput.value = localStorage.getItem("homebrew-rag-key") || "";
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const question = document.getElementById("question").value.trim();
+    if (!question) return;
+
+    const apiKey = keyInput.value.trim();
+    localStorage.setItem("homebrew-rag-key", apiKey);
+
+    button.disabled = true;
+    answerEl.className = "";
+    answerEl.textContent = "Retrieving and generating…";
+    sourcesEl.innerHTML = "";
+    metaEl.textContent = "";
+
+    const headers = { "Content-Type": "application/json" };
+    if (apiKey) headers["X-API-Key"] = apiKey;
+
+    try {
+      const response = await fetch("/query", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          question,
+          top_k: Number(document.getElementById("topk").value) || 5,
+          source_tag: document.getElementById("tag").value.trim() || null,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.detail || `HTTP ${response.status}`);
+      }
+
+      answerEl.textContent = payload.answer;
+
+      if (payload.sources?.length) {
+        const items = payload.sources.map((s) => `
+          <li>
+            <span class="src">${escapeHtml(s.source)}</span>
+            ${s.section ? `<span class="score"> — ${escapeHtml(s.section)}</span>` : ""}
+            <span class="score"> (score ${s.score})</span>
+            <div class="snippet">${escapeHtml(s.text || "")}</div>
+          </li>`).join("");
+        sourcesEl.innerHTML = `<h2>Retrieved chunks</h2><ol>${items}</ol>`;
+      }
+
+      const t = payload.timings_ms || {};
+      const u = payload.usage || {};
+      metaEl.textContent = `${payload.model || "model n/a"} · retrieval ${t.retrieval ?? "?"} ms · generation ${t.generation ?? "?"} ms · ${u.input_tokens ?? 0} in / ${u.output_tokens ?? 0} out tokens`;
+    } catch (error) {
+      answerEl.className = "err";
+      answerEl.textContent = `Request failed: ${error.message}`;
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (c) => (
+      { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+    ));
+  }
+</script>
+</body>
+</html>

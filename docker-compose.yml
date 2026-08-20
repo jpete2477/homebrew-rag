@@ -1,0 +1,39 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.19.0
+    container_name: homebrew-rag-qdrant
+    restart: unless-stopped
+    ports:
+      # Bound to localhost — the API container reaches Qdrant over the compose
+      # network, so the port only needs to be exposed for local inspection.
+      - "127.0.0.1:6333:6333"
+      - "127.0.0.1:6334:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    container_name: homebrew-rag-api
+    restart: unless-stopped
+    profiles: ["api"]          # `docker compose --profile api up -d` to include it
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      QDRANT_URL: http://qdrant:6333
+      HF_HOME: /models
+    ports:
+      - "8000:8000"            # reachable on the LAN; ufw decides who may connect
+    volumes:
+      - hf_cache:/models       # embedding model downloads once, survives rebuilds
+      - ./documents:/app/documents:ro
+
+volumes:
+  qdrant_storage:
+  hf_cache:

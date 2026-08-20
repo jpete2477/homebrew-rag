@@ -1,0 +1,69 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "homebrew-rag"
+version = "0.1.0"
+description = "A homebrew Retrieval-Augmented Generation stack: Qdrant + local embeddings + Claude, no framework."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Jeff Peterson", email = "jeff@tienta.net" }]
+keywords = ["rag", "qdrant", "claude", "anthropic", "embeddings", "retrieval"]
+classifiers = [
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "License :: OSI Approved :: MIT License",
+]
+
+dependencies = [
+  "anthropic==0.125.0",
+  "qdrant-client==1.19.0",
+  "fastapi==0.141.1",
+  "uvicorn[standard]==0.52.4",
+  "pypdf==6.16.1",
+  "python-dotenv==1.2.3",
+]
+
+[project.optional-dependencies]
+# The default embedding backend. Split out because it pulls PyTorch (~2 GB) —
+# CI and any deployment using an API-based embedder can skip it.
+local-embeddings = ["sentence-transformers==6.0.0"]
+dev = [
+  "pytest==9.1.1",
+  "ruff==0.16.3",
+  "httpx2==2.12.0",  # starlette TestClient backend
+]
+
+[project.scripts]
+homebrew-rag = "homebrew_rag.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/jpete2477/homebrew-rag"
+Tutorial = "https://github.com/jpete2477/homebrew-rag/blob/main/docs/tutorial.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/homebrew_rag"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "integration: requires a running Qdrant (and, for generation, an Anthropic API key)",
+]
+addopts = "-m 'not integration' --strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency markers are meant to be evaluated in argument defaults.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Query"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]

@@ -1,0 +1,29 @@
+{
+  "cases": [
+    {
+      "query": "What does the AI Opportunity Audit cost?",
+      "expected_source": "audit-pricing.md",
+      "note": "Exact figure — a good canary for whether pure-vector search finds dollar amounts."
+    },
+    {
+      "query": "How long does the audit engagement take?",
+      "expected_source": "audit-pricing.md"
+    },
+    {
+      "query": "Is implementation work included in the audit fee?",
+      "expected_source": "audit-pricing.md"
+    },
+    {
+      "query": "What do the terms say about recording consent?",
+      "expected_source": "engagement-terms.md"
+    },
+    {
+      "query": "How long are client materials held in confidence?",
+      "expected_source": "engagement-terms.md"
+    },
+    {
+      "query": "What are the payment terms?",
+      "expected_sources": ["engagement-terms.md"]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+# Pinned runtime install for the tutorial path (§4). Equivalent to:
+#   pip install -e ".[local-embeddings]"
+anthropic==0.125.0
+qdrant-client==1.19.0
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+pypdf==6.16.1
+python-dotenv==1.2.3
+sentence-transformers==6.0.0

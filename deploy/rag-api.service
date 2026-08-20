@@ -1,0 +1,36 @@
+# Install:
+#   sudo cp deploy/rag-api.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now rag-api
+# Adjust User/paths if the checkout does not live in /home/youruser/homebrew-rag.
+
+[Unit]
+Description=Homebrew RAG API
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=exec
+User=youruser
+Group=youruser
+WorkingDirectory=/home/youruser/homebrew-rag
+EnvironmentFile=/home/youruser/homebrew-rag/.env
+Environment="PATH=/home/youruser/homebrew-rag/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="HF_HOME=/home/youruser/.cache/huggingface"
+ExecStart=/home/youruser/homebrew-rag/venv/bin/uvicorn homebrew_rag.api:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+TimeoutStartSec=180
+
+# The service only needs to read the checkout and write its model cache.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/youruser/.cache/huggingface
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

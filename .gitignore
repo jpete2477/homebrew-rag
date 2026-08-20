@@ -1,0 +1,32 @@
+# Secrets
+.env
+*.pem
+
+# Real corpora and evals — this repo is public; keep source documents local.
+documents/*
+!documents/sample/
+!documents/.gitkeep
+eval/golden_set.json
+eval/*.local.json
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Models / caches
+.cache/
+qdrant_storage/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
